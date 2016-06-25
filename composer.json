@@ -1,0 +1,27 @@
+{
+    "name": "arabcoders/db",
+    "type": "library",
+    "description": "Extends PDO to add extra methods.",
+    "keywords": [
+        "pdo",
+        "db",
+        "mysql"
+    ],
+    "homepage": "https://www.abdulmohsen.me",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "AbdulMohsen B. A. A.",
+            "email": "admin@arabcoders.org"
+        }
+    ],
+    "require": {
+        "php": ">=7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "arabcoders\\db\\": "src/"
+        }
+    }
+}
+
