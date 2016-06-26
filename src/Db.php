@@ -44,7 +44,6 @@ class Db implements DBInterface
      */
     const DATE = 'Y-m-d H:i:s';
 
-    const deadLockCode = 40001;
     /**
      * @var int
      */
@@ -89,7 +88,7 @@ class Db implements DBInterface
         }
         catch ( PDOException $e )
         {
-            if ( $e->getCode() === self::deadLockCode && $this->deadlockTries < $this->deadlockRetries )
+            if ( $e->getCode() == '40001' && $this->deadlockTries < $this->deadlockRetries )
             {
                 $this->deadlockTries++;
 
