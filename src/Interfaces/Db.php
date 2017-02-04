@@ -2,7 +2,7 @@
 /**
  * This file is part of {@see arabcoders\db} package.
  *
- * (c) 2015-2016 Abdulmohsen B. A. A..
+ * (c) 2015-2017 Abdulmohsen B. A. A..
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -10,8 +10,10 @@
 
 namespace arabcoders\db\Interfaces;
 
-use \PDO, \RuntimeException, \PDOStatement,
-    arabcoders\db\Exceptions\DBException;
+use arabcoders\db\Exceptions\DBException;
+use PDO;
+use PDOStatement;
+use RuntimeException;
 
 /**
  * DB Interface.
@@ -26,7 +28,7 @@ interface Db
      * @param PDO   $pdo
      * @param array $options
      */
-    public function __construct( PDO $pdo, array $options = [ ] );
+    public function __construct( PDO $pdo, array $options = [] );
 
     /**
      * Prepared Query.
@@ -39,38 +41,38 @@ interface Db
      *
      * @return PDOStatement
      */
-    public function query( string $sql, array $bind = [ ], array $options = [ ] ): PDOStatement;
+    public function query( string $sql, array $bind = [], array $options = [] ) : PDOStatement;
 
     /**
-     * Turn of Auto commit to start transcation.
+     * Turn of Auto commit to start transaction.
      *
      * @return boolean
      * @throws DBException
      */
-    public function start(): bool;
+    public function start() : bool;
 
     /**
-     * Commit transcation.
+     * Commit transaction.
      *
      * @return boolean
      * @throws DBException
      */
-    public function commit(): bool;
+    public function commit() : bool;
 
     /**
-     * Rollback transcation.
+     * Rollback transaction.
      *
      * @throws DBException
      * @return boolean
      */
-    public function rollBack(): bool;
+    public function rollBack() : bool;
 
     /**
-     * Check whether we are in transcation or not.
+     * Check whether we are in transaction or not.
      *
      * @return bool
      */
-    public function inTransaction(): bool;
+    public function inTransaction() : bool;
 
     /**
      * Delete Rows
@@ -84,7 +86,7 @@ interface Db
      *
      * @return PDOStatement
      */
-    public function delete( string $table, array $conditions, array $options = [ ] ): PDOStatement;
+    public function delete( string $table, array $conditions, array $options = [] ) : PDOStatement;
 
     /**
      * Select Rows
@@ -98,7 +100,7 @@ interface Db
      *
      * @return PDOStatement
      */
-    public function select( string $table, array $cols = [ ], array $conditions = [ ], array $options = [ ] ): PDOStatement;
+    public function select( string $table, array $cols = [], array $conditions = [], array $options = [] ) : PDOStatement;
 
     /**
      * Update Rows
@@ -113,20 +115,20 @@ interface Db
      *
      * @return PDOStatement
      */
-    public function update( string $table, array $changes, array $conditions, array $options = [ ] ): PDOStatement;
+    public function update( string $table, array $changes, array $conditions, array $options = [] ) : PDOStatement;
 
     /**
      * Insert Row
      *
      * @param  string $table      Table.
-     * @param  array  $conditions Bind paramaters.
+     * @param  array  $conditions Bind parameters.
      * @param  array  $options    Options.
      *
      * @throws RuntimeException  When {@see $conditions} is empty.
      *
      * @return PDOStatement
      */
-    public function insert( string $table, array $conditions, array $options = [ ] ): PDOStatement;
+    public function insert( string $table, array $conditions, array $options = [] ) : PDOStatement;
 
     /**
      * Quote String
@@ -135,7 +137,7 @@ interface Db
      *
      * @return string
      */
-    public function quote( string $text ): string;
+    public function quote( string $text ) : string;
 
     /**
      * Escape String.
@@ -144,7 +146,7 @@ interface Db
      *
      * @return string
      */
-    public function escape( string $text ): string;
+    public function escape( string $text ) : string;
 
     /**
      * Set foreign Key Check.
@@ -153,21 +155,21 @@ interface Db
      *
      * @return Db
      */
-    public function setforeignKeyCheck( bool $bool = true ): Db;
+    public function setForeignKeyCheck( bool $bool = true ) : Db;
 
     /**
      * Get Last Query String.
      *
      * @return string
      */
-    public function getQueryString(): string;
+    public function getQueryString() : string;
 
     /**
-     * Get last query bind paramaters
+     * Get last query bind parameters
      *
      * @return array
      */
-    public function getQueryBind(): array;
+    public function getQueryBind() : array;
 
     /**
      * Get the last Insert id.
@@ -183,21 +185,21 @@ interface Db
      *
      * @return int
      */
-    public function totalRows(): int;
+    public function totalRows() : int;
 
     /**
      * Close PDO Connection
      *
      * @return boolean
      */
-    public function close(): bool;
+    public function close() : bool;
 
     /**
      * Get the {@see PDO} connection instance.
      *
      * @return PDO return the PDO Instance.
      */
-    public function getPdo(): PDO;
+    public function getPdo() : PDO;
 
     /**
      * Set Class Variable.
@@ -207,7 +209,7 @@ interface Db
      *
      * @return Db
      */
-    public function setVariable( string $key, $value ): Db;
+    public function setVariable( string $key, $value ) : Db;
 
     /**
      * get Class Variable.
@@ -226,10 +228,10 @@ interface Db
      *
      * @return Db
      */
-    public function setAttribute( $key, $value ): Db;
+    public function setAttribute( $key, $value ) : Db;
 
     /**
-     * If method doesnt exists localy, route it to {@see \PDO}.
+     * If method does not exists locally, route it to {@see \PDO}.
      *
      * @param string $method
      * @param mixed  $parameters

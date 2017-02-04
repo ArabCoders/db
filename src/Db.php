@@ -2,7 +2,7 @@
 /**
  * This file is part of {@see arabcoders\db} package.
  *
- * (c) 2015-2016 Abdulmohsen B. A. A..
+ * (c) 2015-2017 Abdulmohsen B. A. A..
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -10,12 +10,13 @@
 
 namespace arabcoders\db;
 
-use \PDO, \PDOStatement, \PDOException;
 use arabcoders\db\
 {
-    Exceptions\DBException,
-    Interfaces\Db as DBInterface
+    Exceptions\DBException, Interfaces\Db as DBInterface
 };
+use PDO;
+use PDOException;
+use PDOStatement;
 
 /**
  * Extends PDO to add extra methods.
@@ -37,7 +38,7 @@ class Db implements DBInterface
     /**
      * @var array holds array bind.
      */
-    protected $bind = [ ];
+    protected $bind = [];
 
     /**
      * @var string Mysql date
@@ -60,7 +61,7 @@ class Db implements DBInterface
      * @param PDO   $pdo
      * @param array $options
      */
-    public function __construct( PDO $pdo, array $options = [ ] )
+    public function __construct( PDO $pdo, array $options = [] )
     {
         $this->pdo = $pdo;
 
@@ -75,7 +76,7 @@ class Db implements DBInterface
         }
     }
 
-    public function query( string $sql, array $bind = [ ], array $options = [ ] ): PDOStatement
+    public function query( string $sql, array $bind = [], array $options = [] ) : PDOStatement
     {
         $this->bind = &$bind;
 
@@ -97,13 +98,16 @@ class Db implements DBInterface
                 return $this->query( $sql, $bind, $options );
             }
 
-            throw ( ( new DBException( $e->getMessage() ) )->setInfo( $sql, $this->bind, $e->errorInfo, $e->getCode() ) );
+            throw ( ( new DBException( $e->getMessage() ) )
+                ->setInfo( $sql, $this->bind, $e->errorInfo, $e->getCode() ) )
+                ->setFile( $e->getTrace()[1]['file'] ?? $e->getFile() )
+                ->setLine( $e->getTrace()[1]['line'] ?? $e->getLine() );
         }
 
         return $stmt;
     }
 
-    public function setforeignKeyCheck( bool $bool = true ): DBInterface
+    public function setForeignKeyCheck( bool $bool = true ) : DBInterface
     {
         $state = ( is_bool( $bool ) && $bool ) ? 1 : 0;
 
@@ -112,27 +116,27 @@ class Db implements DBInterface
         return $this;
     }
 
-    public function start(): bool
+    public function start() : bool
     {
         return $this->pdo->beginTransaction();
     }
 
-    public function commit(): bool
+    public function commit() : bool
     {
         return $this->pdo->commit();
     }
 
-    public function rollBack(): bool
+    public function rollBack() : bool
     {
         return $this->pdo->rollBack();
     }
 
-    public function inTransaction(): bool
+    public function inTransaction() : bool
     {
         return $this->pdo->inTransaction();
     }
 
-    public function delete( string $table, array $conditions, array $options = [ ] ): PDOStatement
+    public function delete( string $table, array $conditions, array $options = [] ) : PDOStatement
     {
         if ( empty( $conditions ) )
         {
@@ -141,7 +145,7 @@ class Db implements DBInterface
 
         $queryString = "DELETE FROM " . $this->escapeIdentifier( $table, true ) . " WHERE ";
 
-        $keys = [ ];
+        $keys = [];
 
         foreach ( $conditions as $i => $v )
         {
@@ -155,7 +159,7 @@ class Db implements DBInterface
         return $this->query( $queryString, $conditions );
     }
 
-    public function select( string $table, array $cols = [ ], array $conditions = [ ], array $options = [ ] ): PDOStatement
+    public function select( string $table, array $cols = [], array $conditions = [], array $options = [] ) : PDOStatement
     {
         if ( !empty( $cols ) )
         {
@@ -175,7 +179,7 @@ class Db implements DBInterface
 
         if ( !empty( $conditions ) )
         {
-            $keys = [ ];
+            $keys = [];
 
             foreach ( $conditions as $i => $v )
             {
@@ -216,7 +220,7 @@ class Db implements DBInterface
         return $this->query( $queryString, $conditions );
     }
 
-    public function update( string $table, array $changes, array $conditions, array $options = [ ] ): PDOStatement
+    public function update( string $table, array $changes, array $conditions, array $options = [] ) : PDOStatement
     {
         if ( empty( $changes ) )
         {
@@ -228,11 +232,11 @@ class Db implements DBInterface
             throw new \RuntimeException( 'Conditions Parameter is empty, it should be associative array.' );
         }
 
-        $params = [ ];
+        $params = [];
 
         $queryString = "UPDATE " . $this->escapeIdentifier( $table, true ) . " SET ";
 
-        $pre = [ ];
+        $pre = [];
 
         foreach ( $changes as $i => $v )
         {
@@ -244,7 +248,7 @@ class Db implements DBInterface
         $queryString .= join( ', ', $pre );
         $queryString .= " WHERE ";
 
-        $post = [ ];
+        $post = [];
 
         foreach ( $conditions as $i => $v )
         {
@@ -258,7 +262,7 @@ class Db implements DBInterface
         return $this->query( $queryString, $params );
     }
 
-    public function insert( string $table, array $conditions, array $options = [ ] ): PDOStatement
+    public function insert( string $table, array $conditions, array $options = [] ) : PDOStatement
     {
         if ( empty( $conditions ) )
         {
@@ -267,7 +271,7 @@ class Db implements DBInterface
 
         $queryString = "INSERT INTO " . $this->escapeIdentifier( $table, true ) . " SET ";
 
-        $keys = [ ];
+        $keys = [];
 
         foreach ( array_keys( $conditions ) as $i => $v )
         {
@@ -279,22 +283,22 @@ class Db implements DBInterface
         return $this->query( $queryString, $conditions );
     }
 
-    public function quote( string $text ): string
+    public function quote( string $text ) : string
     {
         return $this->pdo->quote( $text, \PDO::PARAM_STR );
     }
 
-    public function escape( string $text ): string
+    public function escape( string $text ) : string
     {
         return mb_substr( $this->pdo->quote( $text ), 1, -1, 'UTF-8' );
     }
 
-    public function getQueryString(): string
+    public function getQueryString() : string
     {
         return $this->queryString;
     }
 
-    public function getQueryBind(): array
+    public function getQueryBind() : array
     {
         return $this->bind;
     }
@@ -304,36 +308,36 @@ class Db implements DBInterface
         return $this->pdo->lastInsertId( $name );
     }
 
-    public function totalRows(): int
+    public function totalRows() : int
     {
         return $this->pdo->query( 'SELECT FOUND_ROWS();' )->fetch( \PDO::FETCH_COLUMN );
     }
 
-    public function close(): bool
+    public function close() : bool
     {
         $this->pdo = null;
 
         return true;
     }
 
-    public function getPdo(): PDO
+    public function getPdo() : PDO
     {
         return $this->pdo;
     }
 
-    public function setVariable( string $key, $value ): DBInterface
+    public function setVariable( string $key, $value ) : DBInterface
     {
         $this->{$key} = $value;
 
         return $this;
     }
 
-    public function getVariable( string $key ): DBInterface
+    public function getVariable( string $key ) : DBInterface
     {
         return property_exists( $this, $key ) ? $this->{$key} : null;
     }
 
-    public function setAttribute( $key, $value ): DBInterface
+    public function setAttribute( $key, $value ) : DBInterface
     {
         $this->pdo->setAttribute( $key, $value );
 
@@ -357,7 +361,7 @@ class Db implements DBInterface
      *
      * @return DBInterface
      */
-    private function setDefaultAttributes(): DBInterface
+    private function setDefaultAttributes() : DBInterface
     {
         $this->pdo->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
         $this->pdo->setAttribute( \PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC );
@@ -375,7 +379,7 @@ class Db implements DBInterface
      *
      * @return array
      */
-    public function inArrayBind( array $cols ): array
+    public function inArrayBind( array $cols ) : array
     {
         if ( empty( $cols ) )
         {
@@ -387,7 +391,7 @@ class Db implements DBInterface
 
         $i = 0;
 
-        $bind = [ ];
+        $bind = [];
 
         foreach ( $cols as $key => $value )
         {
@@ -412,7 +416,7 @@ class Db implements DBInterface
      *
      * @return string
      */
-    public function escapeIdentifier( string $text, bool $quote = false ): string
+    public function escapeIdentifier( string $text, bool $quote = false ) : string
     {
         $str = \preg_replace( '/[^0-9a-zA-Z_]/', '', $text );
 
