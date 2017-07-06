@@ -94,7 +94,23 @@ interface Db
      * @param string $table
      * @param array  $cols
      * @param array  $conditions
+     *  <code>
+     *  [
+     *  'fieldName1'    => 'val',
+     *  'fieldName2     => 'val',
+     *  ....            => ....
+     *  ]</code>
      * @param array  $options
+     *
+     * <code>
+     *  [
+     *  'count'     => (bool) adds "SQL_CALC_FOUND_ROWS" to query string
+     *  'groupby'   => (array)[ 'fieldName1','fieldName2', ... ],
+     *  'orderby    => (array)[ 'fieldName1' => 'DESC|ASC', 'fieldName2' => 'DESC|ASC', .... ]
+     *  'start'     => (int) offset
+     *  'limit'     => (int) limit
+     *  ]
+     *  </code>
      *
      * @throws DBException
      *
@@ -133,11 +149,12 @@ interface Db
     /**
      * Quote String
      *
-     * @param string $text
+     * @param mixed $text parameter to be escaped.
+     * @param int   $type parameter type
      *
      * @return string
      */
-    public function quote( string $text ) : string;
+    public function quote( $text, int $type = \PDO::PARAM_STR ) : string;
 
     /**
      * Escape String.

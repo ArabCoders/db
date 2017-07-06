@@ -78,13 +78,13 @@ class Db implements DBInterface
 
     public function query( string $sql, array $bind = [], array $options = [] ) : PDOStatement
     {
-        $this->bind = &$bind;
-
-        $this->queryString = $sql;
-
         try
         {
-            $stmt = $this->pdo->prepare( $sql );
+            $this->bind = &$bind;
+
+            $this->queryString = $sql;
+
+            $stmt = $this->pdo->prepare( $this->queryString );
             $stmt->execute( $this->bind );
         }
         catch ( PDOException $e )
@@ -95,13 +95,14 @@ class Db implements DBInterface
 
                 usleep( "{$this->deadlockTries}000000" );
 
-                return $this->query( $sql, $bind, $options );
+                return $this->query( $this->queryString, $this->bind, $options );
             }
 
             throw ( ( new DBException( $e->getMessage() ) )
-                ->setInfo( $sql, $this->bind, $e->errorInfo, $e->getCode() ) )
+                ->setInfo( $this->queryString, $this->bind, $e->errorInfo, $e->getCode() ) )
                 ->setFile( $e->getTrace()[1]['file'] ?? $e->getFile() )
-                ->setLine( $e->getTrace()[1]['line'] ?? $e->getLine() );
+                ->setLine( $e->getTrace()[1]['line'] ?? $e->getLine() )
+                ->setOptions( $options );
         }
 
         return $stmt;
@@ -140,7 +141,7 @@ class Db implements DBInterface
     {
         if ( empty( $conditions ) )
         {
-            throw new \RuntimeException( 'Conditions Parameter is empty, it should be associative array.' );
+            throw new \RuntimeException( 'Conditions Parameter is empty, Expecting associative array.' );
         }
 
         $queryString = "DELETE FROM " . $this->escapeIdentifier( $table, true ) . " WHERE ";
@@ -156,7 +157,17 @@ class Db implements DBInterface
 
         $queryString .= join( ' AND ', $keys );
 
-        return $this->query( $queryString, $conditions );
+        if ( array_key_exists( 'limit', $options ) )
+        {
+            $queryString .= ' LIMIT ';
+            $queryString .= ' :__acLimit ';
+
+            $conditions['__acLimit'] = $options['limit'];
+        }
+
+        $queryString = trim( $queryString );
+
+        return $this->query( $queryString, $conditions, $options );
     }
 
     public function select( string $table, array $cols = [], array $conditions = [], array $options = [] ) : PDOStatement
@@ -175,7 +186,9 @@ class Db implements DBInterface
             $col = '*';
         }
 
-        $queryString = "SELECT {$col} FROM " . $this->escapeIdentifier( $table, true ) . "  ";
+        $count = ( array_key_exists( 'count', $options ) && $options['count'] ) ? 'SQL_CALC_FOUND_ROWS ' : '';
+
+        $queryString = "SELECT {$count}{$col} FROM " . $this->escapeIdentifier( $table, true ) . "  ";
 
         if ( !empty( $conditions ) )
         {
@@ -197,6 +210,50 @@ class Db implements DBInterface
             }
         }
 
+        if ( array_key_exists( 'groupby', $options ) && is_array( $options['groupby'] ) )
+        {
+            $options['group']['by'] = array_map( function ( $val )
+            {
+                return $this->escapeIdentifier( $val, true );
+            }, $options['group']['by'] );
+
+            $queryString .= ' GROUP BY ' . join( ', ', $options['group'] ) . ' ';
+        }
+
+        if ( array_key_exists( 'orderby', $options ) && is_array( $options['orderby'] ) )
+        {
+            $_cols = [];
+
+            foreach ( $options['orderby'] as $_colName => $_colSort )
+            {
+                $_colSort .= ( strtoupper( $_colSort ) == 'DESC' ) ? ' DESC ' : ' ASC ';
+
+                $_cols[] = $this->escapeIdentifier( $_colName, true ) . $_colSort;
+            }
+
+            $queryString .= ' ORDER BY ' . join( ', ', $_cols ) . ' ';
+        }
+
+        if ( array_key_exists( 'limit', $options ) )
+        {
+            if ( array_key_exists( 'start', $options ) )
+            {
+                $queryString .= ' LIMIT :__acStart, :__acLimit ';
+
+                $conditions['__acStart'] = $options['start'];
+                $conditions['__acLimit'] = $options['limit'];
+            }
+            else
+            {
+                $queryString .= ' LIMIT :__acLimit ';
+
+                $conditions['__acLimit'] = $options['limit'];
+            }
+        }
+
+        /**
+         * @deprecated will be removed in later 1.x.0 version.
+         */
         if ( !empty( $conditions['__orderBy'] ) )
         {
             $queryString .= ' ORDER BY ' . $this->escapeIdentifier( $conditions['__orderBy'], true );
@@ -210,6 +267,9 @@ class Db implements DBInterface
             }
         }
 
+        /**
+         * @deprecated will be removed in later 1.x.0 version.
+         */
         if ( array_key_exists( '__start', $conditions ) && array_key_exists( '__perpage', $conditions ) )
         {
             $queryString .= ' LIMIT :__start, :__perpage ';
@@ -217,19 +277,19 @@ class Db implements DBInterface
 
         $queryString = trim( $queryString );
 
-        return $this->query( $queryString, $conditions );
+        return $this->query( $queryString, $conditions, $options );
     }
 
     public function update( string $table, array $changes, array $conditions, array $options = [] ) : PDOStatement
     {
         if ( empty( $changes ) )
         {
-            throw new \RuntimeException( 'Changes Parameter is empty, it should be associative array.' );
+            throw new \RuntimeException( 'Changes Parameter is empty, expecting associative array.' );
         }
 
         if ( empty( $conditions ) )
         {
-            throw new \RuntimeException( 'Conditions Parameter is empty, it should be associative array.' );
+            throw new \RuntimeException( 'Conditions Parameter is empty, Expecting associative array.' );
         }
 
         $params = [];
@@ -259,14 +319,24 @@ class Db implements DBInterface
 
         $queryString .= join( ' AND ', $post );
 
-        return $this->query( $queryString, $params );
+        if ( array_key_exists( 'limit', $options ) )
+        {
+            $queryString .= ' LIMIT ';
+            $queryString .= ' :__acLimit ';
+
+            $conditions['__acLimit'] = $options['limit'];
+        }
+
+        $queryString = trim( $queryString );
+
+        return $this->query( $queryString, $params, $options );
     }
 
     public function insert( string $table, array $conditions, array $options = [] ) : PDOStatement
     {
         if ( empty( $conditions ) )
         {
-            throw new \RuntimeException( 'Conditions Parameter is empty, it should be associative array.' );
+            throw new \RuntimeException( 'Conditions Parameter is empty, Expecting associative array.' );
         }
 
         $queryString = "INSERT INTO " . $this->escapeIdentifier( $table, true ) . " SET ";
@@ -280,12 +350,14 @@ class Db implements DBInterface
 
         $queryString .= join( ', ', $keys );
 
-        return $this->query( $queryString, $conditions );
+        $queryString = trim( $queryString );
+
+        return $this->query( $queryString, $conditions, $options );
     }
 
-    public function quote( string $text ) : string
+    public function quote( $text, int $type = \PDO::PARAM_STR ) : string
     {
-        return $this->pdo->quote( $text, \PDO::PARAM_STR );
+        return $this->pdo->quote( $text, $type );
     }
 
     public function escape( string $text ) : string
@@ -310,7 +382,7 @@ class Db implements DBInterface
 
     public function totalRows() : int
     {
-        return $this->pdo->query( 'SELECT FOUND_ROWS();' )->fetch( \PDO::FETCH_COLUMN );
+        return (int) $this->pdo->query( 'SELECT FOUND_ROWS();' )->fetch( \PDO::FETCH_COLUMN );
     }
 
     public function close() : bool
@@ -332,7 +404,7 @@ class Db implements DBInterface
         return $this;
     }
 
-    public function getVariable( string $key ) : DBInterface
+    public function getVariable( string $key )
     {
         return property_exists( $this, $key ) ? $this->{$key} : null;
     }
@@ -348,7 +420,7 @@ class Db implements DBInterface
     {
         $isCallable = [ $this->pdo, $method ];
 
-        if ( is_callable( $isCallable ) )
+        if ( method_exists( $this->pdo, $method ) )
         {
             return call_user_func_array( $isCallable, $parameters );
         }
@@ -423,7 +495,7 @@ class Db implements DBInterface
         // The first character cannot be [0-9]:
         if ( \preg_match( '/^[0-9]/', $str ) )
         {
-            throw new \RuntimeException( "Invalid identifier: Must begin with a letter or undescore." );
+            throw new \RuntimeException( sprintf( "Invalid identifier \"%s\": Must begin with a letter or underscore.", $str ) );
         }
 
         return ( $quote ) ? '`' . $str . '`' : $str;
