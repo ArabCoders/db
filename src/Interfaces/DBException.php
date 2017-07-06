@@ -58,4 +58,13 @@ interface DBException
      * @return DBException
      */
     public function setLine( int $line ) : DBException;
+
+    /**
+     * Set Query Options.
+     *
+     * @param array $options
+     *
+     * @return DBException
+     */
+    public function setOptions( array $options ) : DBException;
 }

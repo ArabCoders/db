@@ -36,6 +36,11 @@ class DBException extends PDOException implements DBExceptionInterface
     public $bind = [];
 
     /**
+     * @var
+     */
+    public $options = [];
+
+    /**
      * @param string     $queryString
      * @param array      $bind
      * @param array      $errorInfo
@@ -73,6 +78,13 @@ class DBException extends PDOException implements DBExceptionInterface
     public function setLine( int $line ) : DBExceptionInterface
     {
         $this->line = $line;
+
+        return $this;
+    }
+
+    public function setOptions( array $options ) : DBExceptionInterface
+    {
+        $this->options = $options;
 
         return $this;
     }
