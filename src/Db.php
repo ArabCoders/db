@@ -226,7 +226,7 @@ class Db implements DBInterface
 
             foreach ( $options['orderby'] as $_colName => $_colSort )
             {
-                $_colSort .= ( strtoupper( $_colSort ) == 'DESC' ) ? ' DESC ' : ' ASC ';
+                $_colSort = ( strtoupper( $_colSort ) == 'DESC' ) ? ' DESC ' : ' ASC ';
 
                 $_cols[] = $this->escapeIdentifier( $_colName, true ) . $_colSort;
             }
