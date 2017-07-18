@@ -228,7 +228,7 @@ class Db implements DBInterface
             {
                 $_colSort = ( strtoupper( $_colSort ) == 'DESC' ) ? ' DESC ' : ' ASC ';
 
-                $_cols[] = $this->escapeIdentifier( $_colName, true ) . $_colSort;
+                $_cols[] = $this->escapeIdentifier( $_colName, true ) . ' ' . $_colSort;
             }
 
             $queryString .= ' ORDER BY ' . join( ', ', $_cols ) . ' ';
