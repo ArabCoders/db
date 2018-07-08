@@ -2,7 +2,7 @@
 /**
  * This file is part of {@see arabcoders\db} package.
  *
- * (c) 2015-2017 Abdulmohsen B. A. A..
+ * (c) 2015-2018 Abdulmohsen B. A. A.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -32,14 +32,14 @@ interface DBException
      *
      * @return string
      */
-    public function getQueryString();
+    public function getQueryString() : string;
 
     /**
      * Return Query Parameters.
      *
      * @return array
      */
-    public function getQueryBind();
+    public function getQueryBind() : array;
 
     /**
      * Set File.
