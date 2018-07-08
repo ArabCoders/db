@@ -12,6 +12,7 @@ namespace arabcoders\db;
 
 use arabcoders\db\Exceptions\DBException;
 use arabcoders\db\Interfaces\Db as DBInterface;
+use arabcoders\db\Interfaces\QueryBuilder;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -361,6 +362,11 @@ class Db implements DBInterface
         $queryString = trim( $queryString );
 
         return $this->query( $queryString, $conditions, $options );
+    }
+
+    public function queryBuilder( QueryBuilder $queryBuilder ) : PDOStatement
+    {
+        return $this->query( $queryBuilder->getStatement(), $queryBuilder->getPlaceholderValues() ?? [] );
     }
 
     public function quote( $text, int $type = \PDO::PARAM_STR ) : string

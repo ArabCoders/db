@@ -147,6 +147,15 @@ interface Db
     public function insert( string $table, array $conditions, array $options = [] ) : PDOStatement;
 
     /**
+     * Execute Query Builder.
+     *
+     * @param QueryBuilder $queryBuilder
+     *
+     * @return PDOStatement
+     */
+    public function queryBuilder( QueryBuilder $queryBuilder ) : PDOStatement;
+
+    /**
      * Quote String
      *
      * @param mixed $text parameter to be escaped.
