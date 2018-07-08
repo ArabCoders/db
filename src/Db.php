@@ -10,10 +10,8 @@
 
 namespace arabcoders\db;
 
-use arabcoders\db\
-{
-    Exceptions\DBException, Interfaces\Db as DBInterface
-};
+use arabcoders\db\Exceptions\DBException;
+use arabcoders\db\Interfaces\Db as DBInterface;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -43,7 +41,7 @@ class Db implements DBInterface
     /**
      * @var string Mysql date
      */
-    const DATE = 'Y-m-d H:i:s';
+    public const DATE = 'Y-m-d H:i:s';
 
     /**
      * @var int
@@ -67,12 +65,20 @@ class Db implements DBInterface
 
         if ( array_key_exists( 'charset', $options ) )
         {
-            $this->pdo->exec( "SET NAMES " . $options['charset'] );
+            $this->pdo->exec( 'SET NAMES ' . $options['charset'] );
         }
 
         if ( !array_key_exists( 'noDefaults', $options ) )
         {
             $this->setDefaultAttributes();
+        }
+
+        if ( !array_key_exists( 'setAttributes', $options ) && is_array( $options['setAttributes'] ) )
+        {
+            foreach ( $options['setAttributes'] as $key => $val )
+            {
+                $this->setAttribute( $key, $val );
+            }
         }
     }
 
@@ -89,7 +95,7 @@ class Db implements DBInterface
         }
         catch ( PDOException $e )
         {
-            if ( $e->getCode() == '40001' && $this->deadlockTries < $this->deadlockRetries )
+            if ( $this->deadlockTries < $this->deadlockRetries && '40001' === (string) $e->getCode() )
             {
                 $this->deadlockTries++;
 
@@ -98,8 +104,9 @@ class Db implements DBInterface
                 return $this->query( $this->queryString, $this->bind, $options );
             }
 
-            throw ( ( new DBException( $e->getMessage() ) )
-                ->setInfo( $this->queryString, $this->bind, $e->errorInfo, $e->getCode() ) )
+            /** @noinspection PhpUnhandledExceptionInspection */
+            throw ( new DBException( $e->getMessage() ) )
+                ->setInfo( $this->queryString, $this->bind, $e->errorInfo, $e->getCode() )
                 ->setFile( $e->getTrace()[1]['file'] ?? $e->getFile() )
                 ->setLine( $e->getTrace()[1]['line'] ?? $e->getLine() )
                 ->setOptions( $options );
@@ -110,15 +117,18 @@ class Db implements DBInterface
 
     public function setForeignKeyCheck( bool $bool = true ) : DBInterface
     {
-        $state = ( is_bool( $bool ) && $bool ) ? 1 : 0;
-
-        $this->pdo->query( "SET foreign_key_checks = {$state}" );
+        $this->pdo->exec( 'SET foreign_key_checks = ' . (int) $bool );
 
         return $this;
     }
 
     public function start() : bool
     {
+        if ( $this->pdo->inTransaction() )
+        {
+            return false;
+        }
+
         return $this->pdo->beginTransaction();
     }
 
@@ -144,7 +154,7 @@ class Db implements DBInterface
             throw new \RuntimeException( 'Conditions Parameter is empty, Expecting associative array.' );
         }
 
-        $queryString = "DELETE FROM " . $this->escapeIdentifier( $table, true ) . " WHERE ";
+        $queryString = 'DELETE FROM ' . $this->escapeIdentifier( $table, true ) . ' WHERE ';
 
         $keys = [];
 
@@ -152,10 +162,10 @@ class Db implements DBInterface
         {
             $i = trim( $i );
 
-            $keys[] = sprintf( "%s = :%s", $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( $i ) );
+            $keys[] = sprintf( '%s = :%s', $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( $i ) );
         }
 
-        $queryString .= join( ' AND ', $keys );
+        $queryString .= implode( ' AND ', $keys );
 
         if ( array_key_exists( 'limit', $options ) )
         {
@@ -174,12 +184,11 @@ class Db implements DBInterface
     {
         if ( !empty( $cols ) )
         {
-            $cols = array_map( function ( $text )
-            {
+            $cols = array_map( function ( $text ) {
                 return $this->escapeIdentifier( $text, true );
             }, $cols );
 
-            $col = join( ', ', $cols );
+            $col = implode( ', ', $cols );
         }
         else
         {
@@ -188,7 +197,7 @@ class Db implements DBInterface
 
         $count = ( array_key_exists( 'count', $options ) && $options['count'] ) ? 'SQL_CALC_FOUND_ROWS ' : '';
 
-        $queryString = "SELECT {$count}{$col} FROM " . $this->escapeIdentifier( $table, true ) . "  ";
+        $queryString = "SELECT {$count}{$col} FROM " . $this->escapeIdentifier( $table, true ) . '  ';
 
         if ( !empty( $conditions ) )
         {
@@ -196,28 +205,27 @@ class Db implements DBInterface
 
             foreach ( $conditions as $i => $v )
             {
-                if ( stripos( $i, '__' ) === 0 )
+                if ( 0 === strpos( $i, '__' ) )
                 {
                     continue;
                 }
 
-                $keys[] = sprintf( "%s = :%s", $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( $i ) );
+                $keys[] = sprintf( '%s = :%s', $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( $i ) );
             }
 
             if ( !empty( $keys ) )
             {
-                $queryString .= " WHERE " . join( ' AND ', $keys );
+                $queryString .= ' WHERE ' . implode( ' AND ', $keys );
             }
         }
 
         if ( array_key_exists( 'groupby', $options ) && is_array( $options['groupby'] ) )
         {
-            $options['group']['by'] = array_map( function ( $val )
-            {
+            $options['group']['by'] = array_map( function ( $val ) {
                 return $this->escapeIdentifier( $val, true );
             }, $options['group']['by'] );
 
-            $queryString .= ' GROUP BY ' . join( ', ', $options['group'] ) . ' ';
+            $queryString .= ' GROUP BY ' . implode( ', ', $options['group'] ) . ' ';
         }
 
         if ( array_key_exists( 'orderby', $options ) && is_array( $options['orderby'] ) )
@@ -226,12 +234,12 @@ class Db implements DBInterface
 
             foreach ( $options['orderby'] as $_colName => $_colSort )
             {
-                $_colSort = ( strtoupper( $_colSort ) == 'DESC' ) ? ' DESC ' : ' ASC ';
+                $_colSort = ( 'DESC' === strtoupper( $_colSort ) ) ? ' DESC ' : ' ASC ';
 
                 $_cols[] = $this->escapeIdentifier( $_colName, true ) . ' ' . $_colSort;
             }
 
-            $queryString .= ' ORDER BY ' . join( ', ', $_cols ) . ' ';
+            $queryString .= ' ORDER BY ' . implode( ', ', $_cols ) . ' ';
         }
 
         if ( array_key_exists( 'limit', $options ) )
@@ -262,7 +270,7 @@ class Db implements DBInterface
 
             if ( !empty( $conditions['__orderBySort'] ) )
             {
-                $queryString .= ( strtolower( $conditions['__orderBySort'] ) == 'desc' ) ? ' DESC ' : ' ASC ';
+                $queryString .= ( 'DESC' === strtoupper( $conditions['__orderBySort'] ) ) ? ' DESC ' : ' ASC ';
                 unset( $conditions['__orderBySort'] );
             }
         }
@@ -294,7 +302,7 @@ class Db implements DBInterface
 
         $params = [];
 
-        $queryString = "UPDATE " . $this->escapeIdentifier( $table, true ) . " SET ";
+        $queryString = 'UPDATE ' . $this->escapeIdentifier( $table, true ) . ' SET ';
 
         $pre = [];
 
@@ -302,11 +310,11 @@ class Db implements DBInterface
         {
             $params['u_' . $i] = $v;
 
-            $pre[] = sprintf( "%s = :%s", $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( 'u_' . $i ) );
+            $pre[] = sprintf( '%s = :%s', $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( 'u_' . $i ) );
         }
 
-        $queryString .= join( ', ', $pre );
-        $queryString .= " WHERE ";
+        $queryString .= implode( ', ', $pre );
+        $queryString .= ' WHERE ';
 
         $post = [];
 
@@ -314,10 +322,10 @@ class Db implements DBInterface
         {
             $params['c_' . $i] = $v;
 
-            $post[] = sprintf( "%s = :%s", $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( 'c_' . $i ) );
+            $post[] = sprintf( '%s = :%s', $this->escapeIdentifier( $i, true ), $this->escapeIdentifier( 'c_' . $i ) );
         }
 
-        $queryString .= join( ' AND ', $post );
+        $queryString .= implode( ' AND ', $post );
 
         if ( array_key_exists( 'limit', $options ) )
         {
@@ -339,16 +347,16 @@ class Db implements DBInterface
             throw new \RuntimeException( 'Conditions Parameter is empty, Expecting associative array.' );
         }
 
-        $queryString = "INSERT INTO " . $this->escapeIdentifier( $table, true ) . " SET ";
+        $queryString = 'INSERT INTO ' . $this->escapeIdentifier( $table, true ) . ' SET ';
 
         $keys = [];
 
         foreach ( array_keys( $conditions ) as $i => $v )
         {
-            $keys[] = sprintf( "%s = :%s", $this->escapeIdentifier( $v, true ), $this->escapeIdentifier( $v, false ) );
+            $keys[] = sprintf( '%s = :%s', $this->escapeIdentifier( $v, true ), $this->escapeIdentifier( $v, false ) );
         }
 
-        $queryString .= join( ', ', $keys );
+        $queryString .= implode( ', ', $keys );
 
         $queryString = trim( $queryString );
 
@@ -438,6 +446,7 @@ class Db implements DBInterface
         $this->pdo->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
         $this->pdo->setAttribute( \PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC );
         $this->pdo->setAttribute( \PDO::ATTR_EMULATE_PREPARES, false );
+        $this->pdo->setAttribute( \PDO::ATTR_STRINGIFY_FETCHES, false );
 
         return $this;
     }
@@ -458,7 +467,16 @@ class Db implements DBInterface
             throw new \InvalidArgumentException( 'First Argument Is empty.' );
         }
 
-        $token  = md5( random_bytes( 16 ) );
+        try
+        {
+            $token = md5( random_bytes( 16 ) );
+        }
+        catch ( \Exception $e )
+        {
+            /** @noinspection RandomApiMigrationInspection */
+            $token = md5( mt_rand( PHP_INT_MIN, PHP_INT_MAX ) );
+        }
+
         $prefix = 'b' . substr( $token, 0, -( strlen( $token ) - 4 ) ) . 'd';
 
         $i = 0;
@@ -474,7 +492,7 @@ class Db implements DBInterface
 
         return [
             'bind'        => $bind,
-            'queryString' => ':' . join( ', :', array_keys( $bind ) )
+            'queryString' => ':' . implode( ', :', array_keys( $bind ) )
         ];
     }
 
@@ -490,14 +508,19 @@ class Db implements DBInterface
      */
     public function escapeIdentifier( string $text, bool $quote = false ) : string
     {
-        $str = \preg_replace( '/[^0-9a-zA-Z_]/', '', $text );
-
-        // The first character cannot be [0-9]:
-        if ( \preg_match( '/^[0-9]/', $str ) )
+        // table or column has to be valid ASCII name.
+        // this is opinionated but we only allow [a-zA-Z0-9_] in column/table name.
+        if ( !\preg_match( '#\w#', $text ) )
         {
-            throw new \RuntimeException( sprintf( "Invalid identifier \"%s\": Must begin with a letter or underscore.", $str ) );
+            throw new \RuntimeException( sprintf( 'Invalid identifier "%s": Column/table must be valid ASCII code.', $text ) );
         }
 
-        return ( $quote ) ? '`' . $str . '`' : $str;
+        // The first character cannot be [0-9]:
+        if ( \preg_match( '/^\d/', $text ) )
+        {
+            throw new \RuntimeException( sprintf( 'Invalid identifier "%s": Must begin with a letter or underscore.', $text ) );
+        }
+
+        return $quote ? '`' . $text . '`' : $text;
     }
 }
