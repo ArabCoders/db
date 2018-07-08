@@ -74,7 +74,7 @@ class Db implements DBInterface
             $this->setDefaultAttributes();
         }
 
-        if ( !array_key_exists( 'setAttributes', $options ) && is_array( $options['setAttributes'] ) )
+        if ( array_key_exists( 'setAttributes', $options ) && is_array( $options['setAttributes'] ) )
         {
             foreach ( $options['setAttributes'] as $key => $val )
             {
