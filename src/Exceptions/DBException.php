@@ -48,7 +48,7 @@ class DBException extends PDOException implements DBExceptionInterface
      *
      * @return $this
      */
-    public function setInfo( $queryString, array $bind = [], array $errorInfo = [], $errorCode = 0 )
+    public function setInfo( $queryString, array $bind = [], array $errorInfo = [], $errorCode = 0 ) : self
     {
         $this->queryString = $queryString;
         $this->bind        = $bind;

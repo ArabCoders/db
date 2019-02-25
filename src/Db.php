@@ -364,6 +364,54 @@ class Db implements DBInterface
         return $this->query( $queryString, $conditions, $options );
     }
 
+    public function upsert( string $table, array $conditions, array $options = [] ) : PDOStatement
+    {
+        if ( empty( $conditions ) )
+        {
+            throw new \RuntimeException( 'Conditions Parameter is empty, Expecting associative array.' );
+        }
+
+        $queryString = 'INSERT INTO  %s 
+                            (%s) 
+                        VALUES 
+                            (%s) 
+                        ON DUPLICATE KEY UPDATE 
+                            %s
+        ';
+
+        $i          = 0;
+        $updatePart = $column = $columnBind = $cond = [];
+
+        foreach ( $conditions as $columnName => $columnValue )
+        {
+            $i++;
+
+            $bind = '__bf0k_' . $i;
+            $key  = $this->escapeIdentifier( $columnName, true );
+
+            $cond[$bind] = $columnValue;
+
+            $column[]     = $key;
+            $columnBind[] = ':' . $bind;
+
+            $updatePart[] = sprintf( '%s = VALUES(%s)', $key, $key );
+        }
+
+        $condition = null;
+
+        $queryString = trim(
+            sprintf(
+                $queryString,
+                $this->escapeIdentifier( $table, true ),
+                implode( ', ', $column ),
+                implode( ', ', $columnBind ),
+                implode( ', ', $updatePart )
+            )
+        );
+
+        return $this->query( $queryString, $cond, $options );
+    }
+
     public function queryBuilder( QueryBuilder $queryBuilder ) : PDOStatement
     {
         return $this->query( $queryBuilder->getStatement(), $queryBuilder->getPlaceholderValues() ?? [] );

@@ -147,6 +147,19 @@ interface Db
     public function insert( string $table, array $conditions, array $options = [] ) : PDOStatement;
 
     /**
+     * Upsert Row.
+     *
+     * @param  string $table      Table.
+     * @param  array  $conditions Bind parameters.
+     * @param  array  $options    Options.
+     *
+     * @throws RuntimeException  When {@see $conditions} is empty.
+     *
+     * @return PDOStatement
+     */
+    public function upsert( string $table, array $conditions, array $options = [] ) : PDOStatement;
+
+    /**
      * Execute Query Builder.
      *
      * @param QueryBuilder $queryBuilder
